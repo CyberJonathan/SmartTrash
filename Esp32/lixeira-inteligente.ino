@@ -4,12 +4,12 @@
 #include <HardwareSerial.h>
 
 // Configurações do WiFi
-#define WIFI_SSID "iPhone de Henrique"
-#define WIFI_PASSWORD "Henrique0903"
+#define WIFI_SSID ""
+#define WIFI_PASSWORD ""
 
 // Configurações do Firebase
-#define FIREBASE_URL "https://lixeira-inteligente-ca7a1-default-rtdb.firebaseio.com"
-#define API_KEY "AIzaSyBGJ6a1vWZc4kCcStSFiJvJT7F_uZbsi1M"
+#define FIREBASE_URL ""
+#define API_KEY ""
 
 // Comunicação com Arduino
 HardwareSerial SerialArduino(2);
