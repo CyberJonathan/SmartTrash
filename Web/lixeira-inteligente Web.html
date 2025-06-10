@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lixeira Inteligente - Controle</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .status-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #4299e1;
+        }
+
+        .status-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background: #48bb78;
+        }
+
+        .status-offline {
+            background: #f56565;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        .control-section {
+            margin-bottom: 30px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-open {
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            color: white;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-close {
+            background: linear-gradient(45deg, #f56565, #e53e3e);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4299e1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .last-update {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+
+        .connection-status {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e6fffa;
+            border-radius: 10px;
+            border: 1px solid #81e6d9;
+        }
+
+        .connection-error {
+            background: #fed7d7;
+            border-color: #feb2b2;
+        }
+
+        .emoji {
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .control-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗑 Lixeira Inteligente</h1>
+            <p>Controle da Tampa</p>
+        </div>
+
+        <div class="status-section">
+            <div class="status-text" id="statusText">Carregando...</div>
+            <div class="status-indicator">
+                <span class="status-dot status-offline" id="statusDot"></span>
+                <span id="connectionText">Conectando...</span>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <div class="control-buttons">
+                <button id="btnOpen" class="btn btn-open" onclick="sendCommand('abrir')">
+                    <span class="emoji">🔓</span>
+                    Abrir
+                </button>
+                <button id="btnClose" class="btn btn-close" onclick="sendCommand('fechar')">
+                    <span class="emoji">🔒</span>
+                    Fechar
+                </button>
+            </div>
+        </div>
+
+        <div class="loading" id="loadingDiv">
+            <div class="loading-spinner"></div>
+            <span>Enviando comando...</span>
+        </div>
+
+        <div id="connectionStatus" class="connection-status">
+            <strong>Status:</strong> <span id="systemStatus">Conectando ao sistema...</span>
+        </div>
+
+        <div class="last-update">
+            Última atualização: <span id="lastUpdate">--:--:--</span>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBGJ6a1vWZc4kCcStSFiJvJT7F_uZbsi1M",
+            authDomain: "lixeira-inteligente-ca7a1.firebaseapp.com",
+            databaseURL: "https://lixeira-inteligente-ca7a1-default-rtdb.firebaseio.com",
+            projectId: "lixeira-inteligente-ca7a1",
+            storageBucket: "lixeira-inteligente-ca7a1.firebasestorage.app",
+            messagingSenderId: "831449659262",
+            appId: "1:831449659262:web:d300bc9c544a7cf66ea52f"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Variáveis globais
+        let isConnected = false;
+        let lastCommandTime = 0;
+
+        // Elementos DOM
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+        const connectionText = document.getElementById('connectionText');
+        const btnOpen = document.getElementById('btnOpen');
+        const btnClose = document.getElementById('btnClose');
+        const loadingDiv = document.getElementById('loadingDiv');
+        const systemStatus = document.getElementById('systemStatus');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const connectionStatus = document.getElementById('connectionStatus');
+
+        // Função para enviar comandos
+        async function sendCommand(command) {
+            const now = Date.now();
+            if (now - lastCommandTime < 2000) {
+                alert('⏱ Aguarde 2 segundos antes de enviar outro comando');
+                return;
+            }
+
+            if (!isConnected) {
+                alert('❌ Sistema desconectado! Verifique a conexão.');
+                return;
+            }
+
+            try {
+                // Mostrar loading
+                loadingDiv.style.display = 'block';
+                btnOpen.disabled = true;
+                btnClose.disabled = true;
+
+                // Enviar comando para Firebase
+                await database.ref('lixeira/comando').set(command);
+
+                lastCommandTime = now;
+                console.log(✅ Comando "${command}" enviado com sucesso);
+
+                // Feedback visual
+                const actionText = command === 'abrir' ? 'Abrindo tampa...' : 'Fechando tampa...';
+                systemStatus.textContent = actionText;
+
+                // Aguardar resposta por 3 segundos
+                setTimeout(() => {
+                    loadingDiv.style.display = 'none';
+                    btnOpen.disabled = false;
+                    btnClose.disabled = false;
+                }, 3000);
+
+            } catch (error) {
+                console.error('❌ Erro ao enviar comando:', error);
+                alert('❌ Erro ao enviar comando. Verifique a conexão.');
+
+                loadingDiv.style.display = 'none';
+                btnOpen.disabled = false;
+                btnClose.disabled = false;
+                systemStatus.textContent = 'Erro na comunicação';
+            }
+        }
+
+        // Função para atualizar status da tampa
+        function updateLidStatus(status) {
+            if (status) {
+                if (status === 'aberta') {
+                    statusText.textContent = '🔓 Tampa Aberta';
+                    statusDot.className = 'status-dot status-online';
+                    connectionText.textContent = 'Tampa aberta';
+                } else if (status === 'fechada') {
+                    statusText.textContent = '🔒 Tampa Fechada';
+                    statusDot.className = 'status-dot status-online';
+                    connectionText.textContent = 'Tampa fechada';
+                } else {
+                    statusText.textContent = '❓ Status: ' + status;
+                    statusDot.className = 'status-dot status-online';
+                    connectionText.textContent = status;
+                }
+            } else {
+                statusText.textContent = '❌ Status Desconhecido';
+                statusDot.className = 'status-dot status-offline';
+                connectionText.textContent = 'Sem dados';
+            }
+        }
+
+        // Função para atualizar status da conexão
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+
+            if (connected) {
+                systemStatus.textContent = '✅ Sistema Online';
+                connectionStatus.className = 'connection-status';
+                btnOpen.disabled = false;
+                btnClose.disabled = false;
+            } else {
+                systemStatus.textContent = '❌ Sistema Offline';
+                connectionStatus.className = 'connection-status connection-error';
+                statusText.textContent = '❌ Desconectado';
+                statusDot.className = 'status-dot status-offline';
+                connectionText.textContent = 'Sem conexão';
+                btnOpen.disabled = true;
+                btnClose.disabled = true;
+            }
+        }
+
+        // Monitorar Firebase
+        function setupFirebaseListeners() {
+            // Monitorar conexão
+            database.ref('.info/connected').on('value', (snapshot) => {
+                const connected = snapshot.val();
+                updateConnectionStatus(connected);
+
+                if (connected) {
+                    console.log('🔥 Conectado ao Firebase');
+                } else {
+                    console.log('❌ Desconectado do Firebase');
+                }
+            });
+
+            // Monitorar status da tampa
+            database.ref('lixeira/status').on('value', (snapshot) => {
+                const status = snapshot.val();
+                updateLidStatus(status);
+                updateTimestamp();
+
+                console.log('📊 Status recebido:', status);
+            });
+
+            // Monitorar comandos (para debug)
+            database.ref('lixeira/comando').on('value', (snapshot) => {
+                const command = snapshot.val();
+                console.log('🎯 Comando atual no Firebase:', command);
+            });
+        }
+
+        // Atualizar timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            lastUpdate.textContent = now.toLocaleTimeString('pt-BR');
+        }
+
+        // Inicializar aplicação
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Lixeira Inteligente - Iniciando sistema...');
+
+            setupFirebaseListeners();
+
+            // Atualizar timestamp a cada minuto
+            setInterval(updateTimestamp, 60000);
+
+            console.log('✅ Sistema inicializado com sucesso!');
+        });
+
+        // Log de debugging
+        window.addEventListener('load', () => {
+            console.log('🌐 Página carregada completamente');
+        });
+    </script>
+</body>
+
+</html>
